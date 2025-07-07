@@ -1,20 +1,35 @@
-// routes/productRoutes.js
+// backend/routes/productRoutes.js
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 
-router.get('/', (req, res) => {
-  console.log('📢 Ruta /api/products fue llamada');
-  res.json([
-    {
-      id: 1,
-      name: 'Producto de prueba',
-      price: 19.99,
-      image: 'imagen1.jpg',
-      category: 'camisetas',
-      size: ['S', 'M', 'L'],
-      description: 'Este es un producto de prueba'
-    }
-  ]);
+const {
+  getProducts,
+  getProduct,
+  createProductHandler,
+  updateProductHandler,
+  deleteProductHandler
+} = require('../controllers/productController');
+
+// Configuración de almacenamiento con Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads')); // Carpeta para guardar imágenes
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
 });
+
+const upload = multer({ storage });
+
+// Rutas
+router.get('/', getProducts); // GET /api/products - Obtener todos los productos
+router.get('/:id', getProduct); // GET /api/products/:id - Obtener un producto por ID
+router.post('/', upload.single('image'), createProductHandler); // POST /api/products - Crear producto con imagen
+router.put('/:id', upload.single('image'), updateProductHandler); // PUT /api/products/:id - Actualizar producto
+router.delete('/:id', deleteProductHandler); // DELETE /api/products/:id - Eliminar producto
 
 module.exports = router;
