@@ -2,56 +2,62 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
 
-// Ruta para crear un nuevo pedido
+// Crear tabla de pedidos si no existe
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      full_name TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      city TEXT,
+      postal_code TEXT,
+      country TEXT,
+      status TEXT DEFAULT 'pendiente',
+      products TEXT, -- JSON.stringify de los productos
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+});
+
+// Ruta para crear un pedido después de pago exitoso
 router.post('/create', (req, res) => {
   const {
-    customer_name,
+    full_name,
     email,
     phone,
     address,
     city,
-    state,
     postal_code,
     country,
-    cartItems
+    products // Array de objetos: [{id, name, size, quantity, price}]
   } = req.body;
 
-  // Insertar pedido en tabla orders
-  const insertOrder = `
-    INSERT INTO orders (
-      customer_name, email, phone, address, city, state, postal_code, country
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  if (!products || products.length === 0) {
+    return res.status(400).json({ error: 'No hay productos en el pedido.' });
+  }
+
+  const productsString = JSON.stringify(products);
+  const fullAddress = `${address}, ${city}, ${postal_code}, ${country}`;
+
+  const stmt = `
+    INSERT INTO orders (full_name, email, phone, address, city, postal_code, country, products)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.run(insertOrder, [customer_name, email, phone, address, city, state, postal_code, country], function (err) {
-    if (err) {
-      console.error('❌ Error al insertar pedido:', err);
-      return res.status(500).json({ error: 'Error al crear el pedido' });
+  db.run(
+    stmt,
+    [full_name, email, phone, address, city, postal_code, country, productsString],
+    function (err) {
+      if (err) {
+        console.error('❌ Error al insertar pedido:', err);
+        return res.status(500).json({ error: 'Error al guardar el pedido.' });
+      }
+
+      res.status(201).json({ success: true, order_id: this.lastID });
     }
-
-    const orderId = this.lastID;
-
-    const insertItem = db.prepare(`
-      INSERT INTO order_items (
-        order_id, product_name, product_image, product_price, size, quantity
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    cartItems.forEach(item => {
-      insertItem.run([
-        orderId,
-        item.name,
-        item.image,
-        item.price,
-        item.selectedSize,
-        item.quantity
-      ]);
-    });
-
-    insertItem.finalize();
-
-    res.status(200).json({ message: 'Pedido creado exitosamente', orderId });
-  });
+  );
 });
 
 module.exports = router;
