@@ -1,8 +1,8 @@
-// backend/routes/orderRoutes.js
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database'); // ← correcto con tu archivo
 
+// GUARDAR PEDIDO
 router.post('/guardar_pedido', (req, res) => {
   const { cart, userData, status } = req.body;
 
@@ -74,6 +74,34 @@ router.post('/guardar_pedido', (req, res) => {
       });
     }
   );
+});
+
+// OBTENER TODOS LOS PEDIDOS
+router.get('/', (req, res) => {
+  const ordersQuery = `SELECT * FROM orders ORDER BY created_at DESC`;
+  const itemsQuery = `SELECT * FROM order_items`;
+
+  db.all(ordersQuery, (err, orders) => {
+    if (err) {
+      console.error('❌ Error al obtener pedidos:', err);
+      return res.status(500).json({ error: 'Error al obtener pedidos' });
+    }
+
+    db.all(itemsQuery, (err, items) => {
+      if (err) {
+        console.error('❌ Error al obtener productos de pedidos:', err);
+        return res.status(500).json({ error: 'Error al obtener items' });
+      }
+
+      // Agrupar items por order_id
+      const ordersWithItems = orders.map(order => {
+        const orderItems = items.filter(i => i.order_id === order.id);
+        return { ...order, items: orderItems };
+      });
+
+      res.json(ordersWithItems);
+    });
+  });
 });
 
 module.exports = router;
