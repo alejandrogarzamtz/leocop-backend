@@ -29,7 +29,7 @@ app.post('/api/pago', async (req, res) => {
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe trabaja en centavos
+      amount: amount, // Stripe trabaja en centavos
       currency: 'mxn',
       description,
       receipt_email: email
