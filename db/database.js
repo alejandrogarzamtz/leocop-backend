@@ -5,11 +5,11 @@ const path = require('path');
 const dbPath = path.resolve(__dirname, '../products.db');
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error('Error al conectar con la base de datos', err);
-  else console.log('Conectado a SQLite');
+  else console.log('✅ Conectado a SQLite');
 });
 
-// Crear tabla si no existe
 db.serialize(() => {
+  // Crear tabla de productos
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +22,7 @@ db.serialize(() => {
     )
   `);
 
-  // Insertar datos de prueba si la tabla está vacía
+  // Insertar productos de prueba si la tabla está vacía
   db.get('SELECT COUNT(*) AS count FROM products', (err, row) => {
     if (row.count === 0) {
       const sampleProducts = [
@@ -54,9 +54,43 @@ db.serialize(() => {
       });
 
       insertStmt.finalize();
-      console.log('Productos de prueba insertados');
+      console.log('🧪 Productos de prueba insertados');
     }
   });
+
+  // Crear tabla de pedidos
+  db.run(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_name TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      city TEXT,
+      state TEXT,
+      postal_code TEXT,
+      country TEXT,
+      status TEXT DEFAULT 'Pendiente',
+      tracking_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Crear tabla de productos del pedido
+  db.run(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      product_name TEXT,
+      product_image TEXT,
+      product_price REAL,
+      size TEXT,
+      quantity INTEGER,
+      FOREIGN KEY(order_id) REFERENCES orders(id)
+    )
+  `);
+
+  console.log('✅ Tablas de pedidos y productos creadas o verificadas');
 });
 
 module.exports = db;
