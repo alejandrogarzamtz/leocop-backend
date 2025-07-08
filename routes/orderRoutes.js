@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/database'); // ← correcto con tu archivo
+const db = require('../db/database');
 
-// GUARDAR PEDIDO
+// POST /api/orders/guardar_pedido
 router.post('/guardar_pedido', (req, res) => {
   const { cart, userData, status } = req.body;
 
@@ -26,7 +26,7 @@ router.post('/guardar_pedido', (req, res) => {
   db.run(
     insertOrderSQL,
     [
-      'Cliente Web', // puedes agregar nombre si luego lo pides
+      'Cliente Web',
       email,
       phone,
       address,
@@ -35,7 +35,7 @@ router.post('/guardar_pedido', (req, res) => {
       zip,
       country,
       status || 'Pendiente',
-      null // tracking_url
+      null
     ],
     function (err) {
       if (err) {
@@ -76,31 +76,56 @@ router.post('/guardar_pedido', (req, res) => {
   );
 });
 
-// OBTENER TODOS LOS PEDIDOS
+// GET /api/orders → devuelve todos los pedidos con sus items
 router.get('/', (req, res) => {
   const ordersQuery = `SELECT * FROM orders ORDER BY created_at DESC`;
-  const itemsQuery = `SELECT * FROM order_items`;
-
-  db.all(ordersQuery, (err, orders) => {
+  db.all(ordersQuery, [], (err, orders) => {
     if (err) {
       console.error('❌ Error al obtener pedidos:', err);
-      return res.status(500).json({ error: 'Error al obtener pedidos' });
+      return res.status(500).json({ error: 'Error al cargar pedidos' });
     }
 
-    db.all(itemsQuery, (err, items) => {
-      if (err) {
-        console.error('❌ Error al obtener productos de pedidos:', err);
-        return res.status(500).json({ error: 'Error al obtener items' });
-      }
-
-      // Agrupar items por order_id
-      const ordersWithItems = orders.map(order => {
-        const orderItems = items.filter(i => i.order_id === order.id);
-        return { ...order, items: orderItems };
+    const getOrderItems = (orderId) => {
+      return new Promise((resolve, reject) => {
+        db.all(
+          `SELECT * FROM order_items WHERE order_id = ?`,
+          [orderId],
+          (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+          }
+        );
       });
+    };
 
-      res.json(ordersWithItems);
-    });
+    Promise.all(
+      orders.map(async (order) => {
+        const items = await getOrderItems(order.id);
+        const total = items.reduce((sum, item) => sum + item.product_price * item.quantity, 0);
+        return {
+          id: order.id,
+          status: order.status,
+          createdAt: order.created_at,
+          userData: {
+            name: order.customer_name,
+            email: order.email,
+            phone: order.phone,
+            address: order.address,
+            city: order.city,
+            state: order.state,
+            zip: order.postal_code,
+            country: order.country,
+          },
+          cart: items,
+          total: total.toFixed(2),
+        };
+      })
+    )
+      .then((fullOrders) => res.json(fullOrders))
+      .catch((err) => {
+        console.error('❌ Error al obtener productos por pedido:', err);
+        res.status(500).json({ error: 'Error al unir productos con pedidos' });
+      });
   });
 });
 
