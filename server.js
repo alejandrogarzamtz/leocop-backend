@@ -1,6 +1,4 @@
 // backend/server.js
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -12,24 +10,18 @@ const orderRoutes = require('./routes/orderRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Verificación de clave secreta
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error('❌ No se encontró STRIPE_SECRET_KEY en el archivo .env');
-  process.exit(1);
-}
-
-// Inicializar Stripe
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+// ✅ CLAVE STRIPE directamente (solo para pruebas)
+const stripe = Stripe('sk_test_51RihgYC01ph3qasLve9SSiolMcnJ15yG4SXB12BUfctdqoUk7iRBj02dWw9flaFgi6B8cjL74DQokeBA0DJpXclP00aIgwz5wg');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir imágenes desde /uploads
+// Servir imágenes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Ruta de pago con Stripe
+// Ruta de pago
 app.post('/api/pago', async (req, res) => {
   const { amount, description, email } = req.body;
 
@@ -37,7 +29,7 @@ app.post('/api/pago', async (req, res) => {
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe requiere montos en centavos
+      amount: Math.round(amount * 100),
       currency: 'mxn',
       description,
       receipt_email: email
