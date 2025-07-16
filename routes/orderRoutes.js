@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
-const enviarCorreo = require('../services/emailService');
+const enviarCorreo = require('../utils/emailService');
 
 // POST /api/orders/guardar_pedido
 router.post('/guardar_pedido', (req, res) => {
