@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/database');
+const enviarCorreo = require('../services/emailService');
 
 // POST /api/orders/guardar_pedido
 router.post('/guardar_pedido', (req, res) => {
@@ -126,6 +127,45 @@ router.get('/', (req, res) => {
         console.error('❌ Error al obtener productos por pedido:', err);
         res.status(500).json({ error: 'Error al unir productos con pedidos' });
       });
+  });
+});
+
+// PUT /api/orders/:id/status → actualiza estado y manda correo
+router.put('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status, tracking_url } = req.body;
+
+  const updateSQL = `
+    UPDATE orders SET status = ?, tracking_url = ? WHERE id = ?
+  `;
+
+  db.run(updateSQL, [status, tracking_url || null, id], function (err) {
+    if (err) {
+      console.error('❌ Error al actualizar estado del pedido:', err);
+      return res.status(500).json({ error: 'Error al actualizar el pedido' });
+    }
+
+    db.get(`SELECT email FROM orders WHERE id = ?`, [id], async (err, row) => {
+      if (err || !row) {
+        console.error('❌ Error al obtener email del pedido:', err);
+        return res.status(500).json({ error: 'No se pudo obtener el email del pedido' });
+      }
+
+      let subject, html;
+      if (status === 'Aceptado') {
+        subject = '✅ Tu pedido ha sido aceptado';
+        html = `<p>Gracias por tu compra. Tu pedido ha sido aceptado y será enviado pronto.</p>
+                ${tracking_url ? `<p><strong>Seguimiento:</strong> <a href="${tracking_url}">${tracking_url}</a></p>` : ''}`;
+      } else if (status === 'Cancelado') {
+        subject = '❌ Tu pedido fue cancelado';
+        html = `<p>Lamentamos informarte que tu pedido fue cancelado. Si tienes dudas, contáctanos.</p>`;
+      } else {
+        return res.json({ message: 'Estado actualizado, pero no se mandó correo (estado no relevante)' });
+      }
+
+      await enviarCorreo(row.email, subject, html);
+      res.json({ message: '✅ Estado actualizado y correo enviado' });
+    });
   });
 });
 
