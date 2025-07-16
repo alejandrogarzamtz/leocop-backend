@@ -1,11 +1,8 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
 
-const nodemailer = require('nodemailer');
-
-// Correo oficial y contraseña de aplicación (NO uses tu contraseña personal)
+// Correo oficial de Leocop y contraseña de aplicación (NO es la contraseña personal)
 const EMAIL_USER = 'leocopservice@gmail.com';
-const EMAIL_PASS = 'unrmxkcqipijteiy; // reemplaza esto
+const EMAIL_PASS = 'unrmxkcqipijteiy'; // ✅ sin espacios, tal cual
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,6 +12,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Función para enviar correos
 const enviarCorreo = async (to, subject, html) => {
   try {
     await transporter.sendMail({
@@ -29,12 +27,5 @@ const enviarCorreo = async (to, subject, html) => {
   }
 };
 
-// 👉 Enviar prueba
-enviarCorreo(
-  'destinatario@ejemplo.com', // reemplaza con el tuyo
-  'Correo de prueba de Leocop ✅',
-  '<h2>¡Todo bien!</h2><p>Este es un correo de prueba enviado desde tu backend.</p>'
-);
-
-
 module.exports = enviarCorreo;
+
