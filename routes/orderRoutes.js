@@ -154,17 +154,21 @@ router.put('/:id/status', async (req, res) => {
       let subject, html;
 
       if (status === 'Aceptado') {
-        subject = '✅ Tu pedido ha sido aceptado';
+        subject = '📦 Tu pedido ha sido aceptado y está en camino';
         html = `
-          <h2>🎉 ¡Gracias por tu compra!</h2>
-          <p>Tu pedido ha sido <strong>aceptado</strong> y será enviado en breve.</p>
-          ${tracking_url ? `<p>📦 <strong>Seguimiento:</strong> <a href="${tracking_url}">${tracking_url}</a></p>` : ''}
-          <p>¡Te avisaremos cuando esté en camino!</p>
+          <h2>📦 ¡Tu pedido ha sido aceptado!</h2>
+          <p>Gracias por tu compra. Ya preparamos tu paquete.</p>
+          ${tracking_url ? `<p>Puedes rastrearlo aquí: <a href="${tracking_url}" target="_blank">${tracking_url}</a></p>` : ''}
           <br><p>Atentamente,<br>Equipo Leocop</p>
         `;
       } else if (status === 'Cancelado') {
-        subject = '❌ Tu pedido fue cancelado';
-        html = `<p>Lamentamos informarte que tu pedido fue cancelado. Si tienes dudas, contáctanos.</p>`;
+        subject = '❌ Tu pedido ha sido cancelado';
+        html = `
+          <h2>❌ Pedido cancelado</h2>
+          <p>Lamentamos informarte que tu pedido fue cancelado.</p>
+          <p>Si tienes dudas, contáctanos respondiendo este correo.</p>
+          <br><p>Atentamente,<br>Equipo Leocop</p>
+        `;
       } else {
         return res.json({ message: 'Estado actualizado, pero no se mandó correo (estado no relevante)' });
       }
@@ -176,4 +180,5 @@ router.put('/:id/status', async (req, res) => {
 });
 
 module.exports = router;
+
 
